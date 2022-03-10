@@ -6403,12 +6403,11 @@ const OBJECTS = {
   columnCollider: "columnCollider",
   disc0: "disc0",
   disc1: "disc1",
-  disc2: "disc2",
   column: "column",
   floor: "floor",
 };
 
-const PLAYER_DISC = [OBJECTS.disc0, OBJECTS.disc1, OBJECTS.disc2];
+const PLAYER_DISC = [OBJECTS.disc0, OBJECTS.disc1];
 
 function render()
 {
@@ -6464,7 +6463,6 @@ function restartGame()
   sceneManager.setCurrentScene(scenes[SCENES.discs]);
   sceneManager.removeAllInstances(OBJECTS.disc0);
   sceneManager.removeAllInstances(OBJECTS.disc1);
-  sceneManager.removeAllInstances(OBJECTS.disc2);
   setSpotLightsColor(COLORS.violet);
   sceneManager.setCurrentScene(scenes[SCENES.all]);
 
@@ -6559,13 +6557,6 @@ function setupScene()
       sceneManager.addObject(obj.scene, OBJECTS.disc1);
     }
   );
-
-  gltfLoader.load("models/disc/disc.gltf",
-  (obj) => {
-    obj.scene.traverse((child) => setColor(child, 0x000000));
-    sceneManager.addObject(obj.scene, OBJECTS.disc2);
-  }
-);
 
   gltfLoader.load("models/column/column.gltf",
     (obj) => {
@@ -6865,8 +6856,7 @@ module.exports = DiscAnimation;
 const PLAYERS = {
   ONE: 0,
   TWO: 1,
-  THREE: 2,
-  END: 3,
+  END: 2,
 };
 
 const ROWS = 6;
