@@ -6365,7 +6365,7 @@ require("./lib/GLTFLoader");
 require("./lib/OrbitControls");
 
 const texturesPath = "images/textures/";
-const allowCameraMovement = true;
+const allowCameraMovement = false;
 const enableDAT = false;
 const winnerDiv = document.getElementById("winnerDiv");
 const shadowsEnabled = true;
@@ -6533,6 +6533,9 @@ function createBoard()
     new Transformation(game.getX(6), 0, 0)
   ));
 
+  for (col of board.children)
+    col.castShadow = true;
+
   sceneManager.addToScene(board);
 }
 
@@ -6548,25 +6551,25 @@ function setupScene()
 
   gltfLoader.load("models/disc/disc.gltf",
     (obj) => {
-      obj.scene.traverse((child) => setColor(child, 0xb100dd));
-      sceneManager.addObject(obj.scene, OBJECTS.disc0);
+      let mesh = obj.scene.children[0];
+      setColor(mesh, 0xb100dd);
+      sceneManager.addObject(mesh, OBJECTS.disc0);
     }
   );
 
   gltfLoader.load("models/disc/disc.gltf",
     (obj) => {
-      obj.scene.traverse((child) => setColor(child, 0xFCFCFC));
-      sceneManager.addObject(obj.scene, OBJECTS.disc1);
+      let mesh = obj.scene.children[0];
+      setColor(mesh, 0xFCFCFC);
+      sceneManager.addObject(mesh, OBJECTS.disc1);
     }
   );
 
   gltfLoader.load("models/column/column.gltf",
     (obj) => {
-      obj.scene.traverse((child) => {
-        child.material = materialManager.createPhongMaterial(texturesPath, "coal", {x: 5, y: 5});
-        child.castShadow = true;
-      });
-      sceneManager.addObject(obj.scene, OBJECTS.column);
+      let mesh = obj.scene.children[0];
+      mesh.material = materialManager.createPhongMaterial(texturesPath, "coal", {x: 5, y: 5});
+      sceneManager.addObject(mesh, OBJECTS.column);
       createBoard();
     }
   )
@@ -6661,13 +6664,6 @@ function setupColliders() {
 function setupCameraController() {
 	cameraControl = new THREE.OrbitControls(camera.raw, renderer.domElement);
 	cameraControl.target.set(0.3, 0.3, 0); // Camara siempre mira a este punto.
-  if (!allowCameraMovement)
-  {
-    cameraControl.enableZoom = false;
-    cameraControl.enableRotate = false;
-    cameraControl.enablePan = false;
-    cameraControl.enableKeys = false;
-  }
   cameraControl.update(); // Update target immediatly
 }
 
@@ -6778,7 +6774,7 @@ function main() {
 
   setupScene();
   setupColliders();
-  setupCameraController();
+  if (allowCameraMovement) setupCameraController();
   setupLight();
   setupGUI();
   setupEventListeners();
@@ -7242,7 +7238,8 @@ const SceneManager = (() => {
       },
 
       instanciateObject: function (key, transformation) {
-        let object = objects[key].model.clone();
+        let model = objects[key].model;
+        let object = model.clone();
 
         if (objects[key]["instances"][currentSceneId])
           objects[key]["instances"][currentSceneId].push(object);
@@ -7254,8 +7251,8 @@ const SceneManager = (() => {
         let {position, rotation, scale} = transformation;
 
         object.position.set(position.x, position.y, position.z);
-        object.rotation.set(rotation.x, rotation.y, rotation.z);
-        object.scale.set(scale.x, scale.y, scale.z);
+        object.rotation.set(model.rotation.x + rotation.x, model.rotation.y + rotation.y, model.rotation.z + rotation.z);
+        object.scale.set(model.scale.x * scale.x, model.scale.y * scale.y, model.scale.z * scale.z);
 
         scenes[currentSceneId].add(object);
 
