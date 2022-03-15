@@ -6365,9 +6365,10 @@ require("./lib/GLTFLoader");
 require("./lib/OrbitControls");
 
 const texturesPath = "images/textures/";
-const allowCameraMovement = false;
+const allowCameraMovement = true;
 const enableDAT = false;
 const winnerDiv = document.getElementById("winnerDiv");
+const shadowsEnabled = true;
 
 // Global variables
 let renderer;
@@ -6541,6 +6542,7 @@ function setupScene()
     if (child.isMesh)
     {
       child.material = new THREE.MeshLambertMaterial({color:new THREE.Color(color)});
+      child.castShadow = true;
     }
   }
 
@@ -6560,16 +6562,20 @@ function setupScene()
 
   gltfLoader.load("models/column/column.gltf",
     (obj) => {
-      obj.scene.traverse((child) => child.material = materialManager.createPhongMaterial(texturesPath, "coal", {x: 5, y: 5}));
+      obj.scene.traverse((child) => {
+        child.material = materialManager.createPhongMaterial(texturesPath, "coal", {x: 5, y: 5});
+        child.castShadow = true;
+      });
       sceneManager.addObject(obj.scene, OBJECTS.column);
       createBoard();
     }
   )
 
   // ------------------------------------------------------- //
-  let floorG = new THREE.PlaneGeometry(6, 1, 12, 12);
-  let floorM = materialManager.createPhongMaterial(texturesPath, "sand", {x: 6, y: 1});
+  let floorG = new THREE.PlaneGeometry(6, 4, 12, 12);
+  let floorM = materialManager.createPhongMaterial(texturesPath, "sand", {x: 6, y: 4});
 	let floor = new THREE.Mesh( floorG, floorM );
+  floor.receiveShadow = true;
   sceneManager.addObject(floor, OBJECTS.floor);
   sceneManager.instanciateObject(
     OBJECTS.floor,
@@ -6669,22 +6675,30 @@ function setupLight() {
   let ambient = new THREE.AmbientLight(0x0A0A0A);
   sceneManager.addToScene(ambient);
 
-  let directional = new THREE.DirectionalLight(0xFFFFFF, 0.22);
+  let directional = new THREE.DirectionalLight(0xFFFFFF, 0.3);
   directional.position.set(0, 0.5, 1);
+  directional.castShadow = true;
+  directional.shadow.mapSize.width = 4096;
+  directional.shadow.mapSize.height = 4096;
+  directional.shadow.camera.near = 0.1;
+  directional.shadow.camera.far = 10;
   sceneManager.addToScene(directional);
 
   leftSpotLight = new THREE.SpotLight(COLORS.violet, 0.5);
   leftSpotLight.position.set(game.getX(0), -0.2, 0.3);
   leftSpotLight.target.position.set(game.getX(2), game.getMaxY() / 1.4, 0);
-  leftSpotLight.angle = Math.PI / 2;
+  leftSpotLight.angle = Math.PI / 4;
   leftSpotLight.penumbra = 0.8;
+  leftSpotLight.castShadow = true;
+  sceneManager.addToScene(leftSpotLight.target);
   sceneManager.addToScene(leftSpotLight);
 
   rightSpotLight = new THREE.SpotLight(COLORS.violet, 0.5);
   rightSpotLight.position.set(game.getX(6), -0.2, 0.3);
   rightSpotLight.target.position.set(game.getX(4), game.getMaxY() / 1.4, 0);
-  rightSpotLight.angle = Math.PI / 2;
+  rightSpotLight.angle = Math.PI / 4;
   rightSpotLight.penumbra = 0.8;
+  sceneManager.addToScene(rightSpotLight.target);
   sceneManager.addToScene(rightSpotLight);
 
   let directional2 = new THREE.DirectionalLight(0xFFFFFF, 0.7);
@@ -6756,6 +6770,9 @@ function main() {
   let aspectRatio = window.innerWidth / window.innerHeight;
   camera = new Camera(75, aspectRatio, 0.1, 100);
   renderer.camera = camera;
+
+  if (shadowsEnabled)
+    renderer.enableShadow = true;
 
   THREE.Cache.enabled = true; // Enable loaders cache
 
@@ -7105,13 +7122,15 @@ class Renderer
 {
   constructor()
   {
-    this._renderer = new THREE.WebGLRenderer({antialias: true});
+    this._renderer = new THREE.WebGLRenderer({antialias: true, powerPreference: "high-performance"});
     this._renderer.setSize( window.innerWidth, window.innerHeight );
     this._renderer.setClearColor( new THREE.Color(0xF7F7F7) );
     this._renderer.autoClear = false;
 
     this._sceneManager = null;
   }
+
+  set enableShadow(enable) { this._renderer.shadowMap.enabled = enable; }
 
   render()
   {
